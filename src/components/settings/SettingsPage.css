@@ -1,0 +1,39 @@
+.settings-page {
+  width: 100%;
+}
+
+.settings-page h2 {
+  margin: 0 0 1.5rem 0;
+  color: #fff;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+}
+
+.settings-tabs button {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #fff;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.settings-tabs button:hover {
+  border-bottom-color: #666;
+}
+
+.settings-tabs button.active {
+  border-bottom-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.settings-content {
+  padding: 1rem 0;
+}

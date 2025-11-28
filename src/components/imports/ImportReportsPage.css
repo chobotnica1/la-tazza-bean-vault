@@ -1,0 +1,147 @@
+.import-reports-page {
+  width: 100%;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #999;
+  font-size: 0.95rem;
+}
+
+.import-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.import-card {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.card-header .icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.card-header h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.card-description {
+  margin: 0;
+  color: #ccc;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.card-details {
+  background-color: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.card-details h4 {
+  margin: 0 0 0.75rem 0;
+  color: #4CAF50;
+  font-size: 0.9rem;
+}
+
+.card-details ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.card-details li {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.btn-import {
+  padding: 0.75rem 1.5rem;
+  background-color: #666;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: not-allowed;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: auto;
+}
+
+.btn-import:not(:disabled) {
+  background-color: #2196F3;
+  color: white;
+  border-color: #2196F3;
+  cursor: pointer;
+}
+
+.btn-import:not(:disabled):hover {
+  background-color: #1976D2;
+}
+
+.instructions-section {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.instructions-section h3 {
+  margin: 0 0 1rem 0;
+  color: #4CAF50;
+}
+
+.instruction-content p {
+  color: #ccc;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.instruction-content strong {
+  color: #fff;
+}
+
+.instruction-content ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: #ccc;
+}
+
+.instruction-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .import-sections {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,29 @@
+.home-page {
+  width: 100%;
+}
+
+.home-page h2 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.dashboard-subtitle {
+  color: #999;
+  margin: 0 0 2rem 0;
+}
+
+.dashboard-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 1.5rem;
+}
+
+.widget-column {
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-widgets {
+    grid-template-columns: 1fr;
+  }
+}

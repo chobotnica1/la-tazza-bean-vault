@@ -1,0 +1,59 @@
+.reports-page {
+  width: 100%;
+}
+
+.reports-page h2 {
+  margin: 0 0 1.5rem 0;
+  color: #fff;
+}
+
+.reports-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.reports-tabs button {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #fff;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.reports-tabs button:hover {
+  border-bottom-color: #666;
+}
+
+.reports-tabs button.active {
+  border-bottom-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.reports-content {
+  padding: 1rem 0;
+}
+
+.coming-soon {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.coming-soon h3 {
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.coming-soon p {
+  margin: 0;
+  color: #999;
+}
