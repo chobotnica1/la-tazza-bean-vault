@@ -75,10 +75,29 @@ export interface InventorySafetyThreshold {
   lowThreshold: number;
 }
 
+export interface InventorySafetySettings {
+  defaultThresholdPerVariety?: number;
+  defaultThresholdPerWarehouse?: number;
+  lowStockThresholds: {
+    [variety: string]: {
+      [warehouse: string]: number;
+    };
+  };
+}
+
 export interface SalesEntry {
   id: string;
   date: string;
   productName: string;
   quantity: number;
   mappedVariety?: string;
+}
+export interface InventorySafetySettings {
+  defaultThresholdPerVariety?: number;
+  defaultThresholdPerWarehouse?: number;
+  lowStockThresholds: {
+    [variety: string]: {
+      [warehouse: string]: number;
+    };
+  };
 }

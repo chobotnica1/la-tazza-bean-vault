@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { CuppingRecord } from '../../entities';
+import type { CuppingRecord, GreenCoffeeBatch } from '../../entities';
 import { getAllGreenBatches } from '../../repositories/localStore';
 import './CuppingForm.css';
 
@@ -37,7 +37,11 @@ export default function CuppingForm({ record, onSave, onCancel }: CuppingFormPro
   });
 
   const [customDescriptor, setCustomDescriptor] = useState('');
-  const greenBatches = getAllGreenBatches();
+  const [greenBatches, setGreenBatches] = useState<GreenCoffeeBatch[]>([]);
+
+useEffect(() => {
+  getAllGreenBatches().then(setGreenBatches);
+}, []);
 
   useEffect(() => {
     if (record) {

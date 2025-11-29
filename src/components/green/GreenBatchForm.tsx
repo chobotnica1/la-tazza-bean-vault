@@ -9,22 +9,26 @@ interface GreenBatchFormProps {
 }
 
 export default function GreenBatchForm({ batch, onSave, onCancel }: GreenBatchFormProps) {
-  const [formData, setFormData] = useState<Partial<GreenCoffeeBatch>>({
-    variety: '',
-    origin: '',
-    farm: '',
-    importer: '',
-    warehouse: '',
-    bagSizeValue: 60,
-    bagSizeUnit: 'kg',
-    quantityBags: 1,
-    rating: 'AA',
-    pricePerUnit: 0,
-    priceUnit: 'lb',
-    deliveryCost: 0,
-    receivedDate: new Date().toISOString().split('T')[0],
-    notes: '',
-  });
+  const [formData, setFormData] = useState<Partial<GreenCoffeeBatch> & {
+  bagSizeValue?: number;
+  bagSizeUnit?: string;
+  pricePerUnit?: number;
+  deliveryCost?: number;
+}>({
+  variety: '',
+  origin: '',
+  farm: '',
+  importer: '',
+  warehouse: '',
+  bagSizeValue: 60,
+  bagSizeUnit: 'kg',
+  quantityBags: 1,
+  rating: 'AA',
+  pricePerUnit: 0,
+  deliveryCost: 0,
+  receivedDate: new Date().toISOString().split('T')[0],
+  notes: '',
+});
 
   useEffect(() => {
     if (batch) {

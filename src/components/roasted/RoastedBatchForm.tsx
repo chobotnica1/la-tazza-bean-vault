@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { RoastedCoffeeBatch, RoastLevel, FormatType, WeightUnit } from '../../entities';
+import type { RoastedCoffeeBatch, RoastLevel, FormatType, WeightUnit, GreenCoffeeBatch } from '../../entities';
 import { getAllGreenBatches } from '../../repositories/localStore';
 import './RoastedBatchForm.css';
 
@@ -25,7 +25,11 @@ export default function RoastedBatchForm({ batch, onSave, onCancel }: RoastedBat
     linkedGreenBatchId: '',
   });
 
-  const greenBatches = getAllGreenBatches();
+  const [greenBatches, setGreenBatches] = useState<GreenCoffeeBatch[]>([]);
+
+useEffect(() => {
+  getAllGreenBatches().then(setGreenBatches);
+}, []);
 
   useEffect(() => {
     if (batch) {

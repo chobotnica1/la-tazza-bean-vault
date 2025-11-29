@@ -26,8 +26,8 @@ export default function GreenBatchTable({
         batch.variety.toLowerCase().includes(search) ||
         batch.origin.toLowerCase().includes(search) ||
         batch.warehouse.toLowerCase().includes(search) ||
-        batch.farm.toLowerCase().includes(search) ||
-        batch.importer.toLowerCase().includes(search)
+        batch.farm?.toLowerCase().includes(search) ||
+        batch.importer?.toLowerCase().includes(search) ||
       );
     });
   }, [batches, searchTerm]);
@@ -106,7 +106,9 @@ export default function GreenBatchTable({
                 <th onClick={() => handleSort('quantityBags')}>
                   Bags {sortField === 'quantityBags' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
-                <th onClick={() => handleSort('bagSizeValue')}>Bag Size</th>
+                <th onClick={() => handleSort('bagSize')}>
+  Bag Size {sortField === 'bagSize' && (sortDirection === 'asc' ? '↑' : '↓')}
+</th>
                 <th onClick={() => handleSort('rating')}>
                   Rating {sortField === 'rating' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
@@ -123,9 +125,7 @@ export default function GreenBatchTable({
                   <td>{batch.origin}</td>
                   <td>{batch.warehouse}</td>
                   <td className="quantity-cell">{batch.quantityBags}</td>
-                  <td>
-                    {batch.bagSizeValue} {batch.bagSizeUnit}
-                  </td>
+                  <td>{batch.bagSize}</td>
                   <td>
                     <span className={`rating-badge rating-${batch.rating.replace('+', 'plus')}`}>
                       {batch.rating}
