@@ -11,13 +11,13 @@ interface CustomerFormProps {
 export default function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) {
   const [formData, setFormData] = useState<Partial<Customer>>({
     name: '',
+    contactPerson: '',
     email: '',
     phone: '',
-    addressLine1: '',
-    addressLine2: '',
+    address: '',
     city: '',
     state: '',
-    postalCode: '',
+    zip: '',
     country: 'USA',
     taxId: '',
     notes: '',
@@ -42,22 +42,22 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.email || !formData.city || !formData.state) {
-      alert('Please fill in all required fields');
+    if (!formData.name) {
+      alert('Please fill in customer name');
       return;
     }
 
     const customerToSave: Customer = {
       id: customer?.id || crypto.randomUUID(),
       name: formData.name!,
-      email: formData.email!,
-      phone: formData.phone || '',
-      addressLine1: formData.addressLine1 || '',
-      addressLine2: formData.addressLine2,
-      city: formData.city!,
-      state: formData.state!,
-      postalCode: formData.postalCode || '',
-      country: formData.country || 'USA',
+      contactPerson: formData.contactPerson,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      city: formData.city,
+      state: formData.state,
+      zip: formData.zip,
+      country: formData.country,
       taxId: formData.taxId,
       notes: formData.notes,
     };
@@ -91,18 +91,26 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
             />
           </div>
 
+          <div className="form-group">
+            <label>Contact Person</label>
+            <input
+              type="text"
+              name="contactPerson"
+              value={formData.contactPerson}
+              onChange={handleChange}
+              placeholder="Primary contact name"
+            />
+          </div>
+
           <div className="form-row">
             <div className="form-group">
-              <label>
-                Email <span className="required">*</span>
-              </label>
+              <label>Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="contact@example.com"
-                required
               />
             </div>
 
@@ -122,64 +130,47 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
         <div className="form-section">
           <h4>Address</h4>
           <div className="form-group">
-            <label>Address Line 1</label>
+            <label>Address</label>
             <input
               type="text"
-              name="addressLine1"
-              value={formData.addressLine1}
+              name="address"
+              value={formData.address}
               onChange={handleChange}
               placeholder="Street address"
             />
           </div>
 
-          <div className="form-group">
-            <label>Address Line 2</label>
-            <input
-              type="text"
-              name="addressLine2"
-              value={formData.addressLine2}
-              onChange={handleChange}
-              placeholder="Apt, suite, etc. (optional)"
-            />
-          </div>
-
           <div className="form-row">
             <div className="form-group">
-              <label>
-                City <span className="required">*</span>
-              </label>
+              <label>City</label>
               <input
                 type="text"
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
                 placeholder="Houston"
-                required
               />
             </div>
 
             <div className="form-group">
-              <label>
-                State <span className="required">*</span>
-              </label>
+              <label>State</label>
               <input
                 type="text"
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
                 placeholder="TX"
-                required
               />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Postal Code</label>
+              <label>Zip Code</label>
               <input
                 type="text"
-                name="postalCode"
-                value={formData.postalCode}
+                name="zip"
+                value={formData.zip}
                 onChange={handleChange}
                 placeholder="77002"
               />
