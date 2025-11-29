@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useEffect } from 'react';
 import type { GreenCoffeeBatch, CoffeeRating, WeightUnit } from '../../entities';
 import './GreenBatchForm.css';

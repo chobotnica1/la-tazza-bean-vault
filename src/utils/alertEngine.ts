@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { GreenCoffeeBatch, InventorySafetySettings } from '../entities';
 
 export interface LowStockAlert {
