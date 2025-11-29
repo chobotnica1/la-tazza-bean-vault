@@ -28,7 +28,7 @@ export default function GreenBatchTable({
         batch.origin.toLowerCase().includes(search) ||
         batch.warehouse.toLowerCase().includes(search) ||
         batch.farm?.toLowerCase().includes(search) ||
-        batch.importer?.toLowerCase().includes(search) ||
+        batch.importer?.toLowerCase().includes(search)
       );
     });
   }, [batches, searchTerm]);
