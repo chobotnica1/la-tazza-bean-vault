@@ -132,7 +132,7 @@ export default function CuppingForm({ record, onSave, onCancel }: CuppingFormPro
     const calculatedScore = calculateTotalScore();
 
     const recordToSave: CuppingRecord = {
-      id: record?.id || `cupping-${Date.now()}`,
+      id: record?.id || crypto.randomUUID(),
       date: formData.date || new Date().toISOString().split('T')[0],
       variety: formData.variety!,
       origin: formData.origin!,

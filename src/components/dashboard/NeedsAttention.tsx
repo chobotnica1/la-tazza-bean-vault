@@ -1,69 +1,135 @@
-import { useMemo } from 'react';
-import { getAllGreenBatches, getSafetySettings } from '../../repositories/localStore';
-import { getLowStockAlerts, getAlertUrgency } from '../../utils/alertEngine';
+import { useState, useEffect } from 'react';
+import type { GreenCoffeeBatch, InventorySafetyThreshold } from '../../entities';
+import { getAllGreenBatches, getAllThresholds } from '../../repositories/localStore';
 import './NeedsAttention.css';
 
-export default function NeedsAttention() {
-  const greenBatches = getAllGreenBatches();
-  const safetySettings = getSafetySettings();
+interface AlertItem {
+  variety: string;
+  warehouse: string;
+  current: number;
+  threshold: number;
+  severity: 'critical' | 'low';
+}
 
-  const alerts = useMemo(() => {
-    return getLowStockAlerts(greenBatches, safetySettings);
-  }, [greenBatches, safetySettings]);
+export default function NeedsAttention() {
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadAlerts();
+  }, []);
+
+  const loadAlerts = async () => {
+    setLoading(true);
+    const [batches, thresholds] = await Promise.all([
+      getAllGreenBatches(),
+      getAllThresholds(),
+    ]);
+
+    const defaultThreshold = thresholds.find(t => t.variety === '*' && t.warehouse === '*') || {
+      criticalThreshold: 3,
+      lowThreshold: 5,
+    };
+
+    const alertList: AlertItem[] = [];
+
+    const grouped = batches.reduce((acc, batch) => {
+      const key = `${batch.variety}|${batch.warehouse}`;
+      if (!acc[key]) {
+        acc[key] = { variety: batch.variety, warehouse: batch.warehouse, total: 0 };
+      }
+      acc[key].total += batch.quantityBags;
+      return acc;
+    }, {} as Record<string, { variety: string; warehouse: string; total: number }>);
+
+    Object.values(grouped).forEach(({ variety, warehouse, total }) => {
+      const specificThreshold = thresholds.find(
+        t => t.variety === variety && t.warehouse === warehouse
+      );
+
+      const threshold = specificThreshold || defaultThreshold;
+
+      if (total <= threshold.criticalThreshold) {
+        alertList.push({
+          variety,
+          warehouse,
+          current: total,
+          threshold: threshold.criticalThreshold,
+          severity: 'critical',
+        });
+      } else if (total <= threshold.lowThreshold) {
+        alertList.push({
+          variety,
+          warehouse,
+          current: total,
+          threshold: threshold.lowThreshold,
+          severity: 'low',
+        });
+      }
+    });
+
+    alertList.sort((a, b) => {
+      if (a.severity !== b.severity) {
+        return a.severity === 'critical' ? -1 : 1;
+      }
+      return a.current - b.current;
+    });
+
+    setAlerts(alertList);
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="needs-attention">
+        <h3>⚠️ Needs Attention</h3>
+        <div style={{ textAlign: 'center', padding: '1rem', color: '#999' }}>
+          Loading alerts...
+        </div>
+      </div>
+    );
+  }
+
+  if (alerts.length === 0) {
+    return (
+      <div className="needs-attention">
+        <h3>✅ All Good!</h3>
+        <p className="no-alerts">No inventory alerts at this time.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="needs-attention-widget">
-      <div className="widget-header">
-        <h3>⚠️ Low Stock Alerts</h3>
-        {alerts.length > 0 && (
-          <span className="alert-count">{alerts.length} item{alerts.length !== 1 ? 's' : ''}</span>
-        )}
+    <div className="needs-attention">
+      <h3>⚠️ Needs Attention</h3>
+      <p className="alert-description">
+        The following items are running low and need to be reordered soon.
+      </p>
+
+      <div className="alerts-list">
+        {alerts.map((alert, idx) => (
+          <div key={idx} className={`alert-item ${alert.severity}`}>
+            <div className="alert-header">
+              <span className="alert-variety">{alert.variety}</span>
+              <span className={`alert-badge ${alert.severity}`}>
+                {alert.severity === 'critical' ? 'CRITICAL' : 'LOW'}
+              </span>
+            </div>
+            <div className="alert-details">
+              <span className="alert-warehouse">{alert.warehouse}</span>
+              <span className="alert-quantity">
+                {alert.current} / {alert.threshold} bags
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {alerts.length === 0 ? (
-        <div className="no-alerts">
-          <span className="check-icon">✓</span>
-          <p>All inventory is above threshold.</p>
-        </div>
-      ) : (
-        <div className="alerts-list">
-          {alerts.map((alert, idx) => {
-            const urgency = getAlertUrgency(alert);
-            return (
-              <div key={idx} className={`alert-item alert-${urgency}`}>
-                <div className="alert-main">
-                  <div className="alert-details">
-                    <span className="alert-variety">{alert.variety}</span>
-                    <span className="alert-separator">—</span>
-                    <span className="alert-warehouse">{alert.warehouse}</span>
-                  </div>
-                  <div className="alert-stock">
-                    <span className="current-bags">{alert.currentBags}</span>
-                    <span className="stock-separator">/</span>
-                    <span className="threshold-bags">{alert.threshold}</span>
-                    <span className="bags-label">bags</span>
-                  </div>
-                </div>
-                <div className="alert-indicator">
-                  {urgency === 'critical' ? (
-                    <span className="urgency-badge critical">Critical</span>
-                  ) : (
-                    <span className="urgency-badge warning">Low</span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {alerts.length > 0 && (
-        <div className="widget-footer">
-          <a href="#" onClick={(e) => { e.preventDefault(); }}>
-            Configure thresholds in Settings →
-          </a>
-        </div>
-      )}
+      <div className="alert-footer">
+        <a href="#" onClick={() => window.location.hash = 'settings'}>
+          Configure thresholds in Settings →
+        </a>
+      </div>
     </div>
   );
 }

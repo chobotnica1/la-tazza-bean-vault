@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { GreenCoffeeBatch } from '../../entities';
 import {
   getAllGreenBatches,
@@ -11,10 +11,22 @@ import GreenBatchTable from './GreenBatchTable';
 import './GreenInventoryPage.css';
 
 export default function GreenInventoryPage() {
-  const [batches, setBatches] = useState<GreenCoffeeBatch[]>(getAllGreenBatches());
+  const [batches, setBatches] = useState<GreenCoffeeBatch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingBatch, setEditingBatch] = useState<GreenCoffeeBatch | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grouped'>('table');
+
+  useEffect(() => {
+    loadBatches();
+  }, []);
+
+  const loadBatches = async () => {
+    setLoading(true);
+    const data = await getAllGreenBatches();
+    setBatches(data);
+    setLoading(false);
+  };
 
   const handleAddNew = () => {
     setEditingBatch(null);
@@ -26,20 +38,20 @@ export default function GreenInventoryPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this batch?')) {
-      deleteGreenBatch(id);
-      setBatches(getAllGreenBatches());
+      await deleteGreenBatch(id);
+      await loadBatches();
     }
   };
 
-  const handleSave = (batch: GreenCoffeeBatch) => {
+  const handleSave = async (batch: GreenCoffeeBatch) => {
     if (editingBatch) {
-      updateGreenBatch(batch);
+      await updateGreenBatch(batch);
     } else {
-      addGreenBatch(batch);
+      await addGreenBatch(batch);
     }
-    setBatches(getAllGreenBatches());
+    await loadBatches();
     setShowForm(false);
     setEditingBatch(null);
   };
@@ -49,6 +61,15 @@ export default function GreenInventoryPage() {
     setEditingBatch(null);
   };
 
+  if (loading) {
+    return (
+      <div className="green-inventory-page">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          Loading inventory...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="green-inventory-page">

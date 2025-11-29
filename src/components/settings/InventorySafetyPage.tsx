@@ -1,303 +1,345 @@
-import { useState, useMemo } from 'react';
-import {
-  getAllGreenBatches,
-  getSafetySettings,
-  saveSafetySettings,
-  setThreshold,
-  removeThreshold,
-} from '../../repositories/localStore';
-import type { InventorySafetySettings } from '../../entities';
+import { useState, useEffect } from 'react';
+import type { InventorySafetyThreshold } from '../../entities';
+import { getAllThresholds, saveAllThresholds } from '../../repositories/localStore';
 import './InventorySafetyPage.css';
 
-interface VarietyWarehousePair {
-  variety: string;
-  warehouse: string;
-  currentStock: number;
-  threshold?: number;
-}
-
 export default function InventorySafetyPage() {
-  const [settings, setSettings] = useState<InventorySafetySettings>(getSafetySettings());
-  const [defaultPerVariety, setDefaultPerVariety] = useState<string>(
-    settings.defaultThresholdPerVariety?.toString() || ''
+  const [thresholds, setThresholds] = useState<InventorySafetyThreshold[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [defaultCritical, setDefaultCritical] = useState(3);
+  const [defaultLow, setDefaultLow] = useState(5);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newVariety, setNewVariety] = useState('');
+  const [newWarehouse, setNewWarehouse] = useState('');
+  const [newCritical, setNewCritical] = useState(3);
+  const [newLow, setNewLow] = useState(5);
+
+  useEffect(() => {
+    loadThresholds();
+  }, []);
+
+  const loadThresholds = async () => {
+    setLoading(true);
+    const data = await getAllThresholds();
+    setThresholds(data);
+    
+    const defaultThreshold = data.find(t => t.variety === '*' && t.warehouse === '*');
+    if (defaultThreshold) {
+      setDefaultCritical(defaultThreshold.criticalThreshold);
+      setDefaultLow(defaultThreshold.lowThreshold);
+    }
+    setLoading(false);
+  };
+
+  const handleSaveDefaults = async () => {
+    const updatedThresholds = thresholds.map(t =>
+      t.variety === '*' && t.warehouse === '*'
+        ? { ...t, criticalThreshold: defaultCritical, lowThreshold: defaultLow }
+        : t
+    );
+
+    if (!updatedThresholds.find(t => t.variety === '*' && t.warehouse === '*')) {
+      updatedThresholds.push({
+        variety: '*',
+        warehouse: '*',
+        criticalThreshold: defaultCritical,
+        lowThreshold: defaultLow,
+      });
+    }
+
+    await saveAllThresholds(updatedThresholds);
+    await loadThresholds();
+    alert('Default thresholds saved!');
+  };
+
+  const handleAddSpecific = async () => {
+    if (!newVariety.trim() || !newWarehouse.trim()) {
+      alert('Please fill in variety and warehouse');
+      return;
+    }
+
+    const exists = thresholds.find(
+      t => t.variety === newVariety && t.warehouse === newWarehouse
+    );
+
+    if (exists) {
+      alert('A threshold for this variety and warehouse already exists');
+      return;
+    }
+
+    const updatedThresholds = [
+      ...thresholds,
+      {
+        variety: newVariety,
+        warehouse: newWarehouse,
+        criticalThreshold: newCritical,
+        lowThreshold: newLow,
+      },
+    ];
+
+    await saveAllThresholds(updatedThresholds);
+    await loadThresholds();
+
+    setNewVariety('');
+    setNewWarehouse('');
+    setNewCritical(3);
+    setNewLow(5);
+    setShowAddForm(false);
+  };
+
+  const handleDeleteSpecific = async (variety: string, warehouse: string) => {
+    if (variety === '*' && warehouse === '*') {
+      alert('Cannot delete default thresholds');
+      return;
+    }
+
+    if (confirm(`Delete threshold for ${variety} at ${warehouse}?`)) {
+      const updatedThresholds = thresholds.filter(
+        t => !(t.variety === variety && t.warehouse === warehouse)
+      );
+      await saveAllThresholds(updatedThresholds);
+      await loadThresholds();
+    }
+  };
+
+  const handleUpdateSpecific = async (
+    variety: string,
+    warehouse: string,
+    criticalThreshold: number,
+    lowThreshold: number
+  ) => {
+    const updatedThresholds = thresholds.map(t =>
+      t.variety === variety && t.warehouse === warehouse
+        ? { ...t, criticalThreshold, lowThreshold }
+        : t
+    );
+
+    await saveAllThresholds(updatedThresholds);
+    await loadThresholds();
+  };
+
+  const specificThresholds = thresholds.filter(
+    t => !(t.variety === '*' && t.warehouse === '*')
   );
-  const [defaultPerWarehouse, setDefaultPerWarehouse] = useState<string>(
-    settings.defaultThresholdPerWarehouse?.toString() || ''
-  );
-  const [thresholdEdits, setThresholdEdits] = useState<{ [key: string]: string }>({});
 
-  const greenBatches = getAllGreenBatches();
-
-  const varietyWarehousePairs = useMemo(() => {
-    const pairMap = new Map<string, VarietyWarehousePair>();
-
-    greenBatches.forEach((batch) => {
-      const key = `${batch.variety}::${batch.warehouse}`;
-      if (pairMap.has(key)) {
-        const pair = pairMap.get(key)!;
-        pair.currentStock += batch.quantityBags;
-      } else {
-        pairMap.set(key, {
-          variety: batch.variety,
-          warehouse: batch.warehouse,
-          currentStock: batch.quantityBags,
-          threshold: settings.lowStockThresholds[batch.variety]?.[batch.warehouse],
-        });
-      }
-    });
-
-    return Array.from(pairMap.values()).sort((a, b) => {
-      if (a.variety !== b.variety) return a.variety.localeCompare(b.variety);
-      return a.warehouse.localeCompare(b.warehouse);
-    });
-  }, [greenBatches, settings]);
-
-  const handleSaveDefaults = () => {
-    const updatedSettings: InventorySafetySettings = {
-      ...settings,
-      defaultThresholdPerVariety: defaultPerVariety
-        ? parseFloat(defaultPerVariety)
-        : undefined,
-      defaultThresholdPerWarehouse: defaultPerWarehouse
-        ? parseFloat(defaultPerWarehouse)
-        : undefined,
-    };
-
-    saveSafetySettings(updatedSettings);
-    setSettings(updatedSettings);
-    alert('Default thresholds saved successfully');
-  };
-
-  const handleThresholdChange = (variety: string, warehouse: string, value: string) => {
-    const key = `${variety}::${warehouse}`;
-    setThresholdEdits((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleSaveThreshold = (variety: string, warehouse: string) => {
-    const key = `${variety}::${warehouse}`;
-    const value = thresholdEdits[key];
-
-    if (value === undefined || value === '') {
-      removeThreshold(variety, warehouse);
-    } else {
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue) && numValue >= 0) {
-        setThreshold(variety, warehouse, numValue);
-      } else {
-        alert('Please enter a valid number');
-        return;
-      }
-    }
-
-    const updatedSettings = getSafetySettings();
-    setSettings(updatedSettings);
-
-    setThresholdEdits((prev) => {
-      const newEdits = { ...prev };
-      delete newEdits[key];
-      return newEdits;
-    });
-  };
-
-  const handleClearThreshold = (variety: string, warehouse: string) => {
-    removeThreshold(variety, warehouse);
-    const updatedSettings = getSafetySettings();
-    setSettings(updatedSettings);
-
-    const key = `${variety}::${warehouse}`;
-    setThresholdEdits((prev) => {
-      const newEdits = { ...prev };
-      delete newEdits[key];
-      return newEdits;
-    });
-  };
-
-  const getEffectiveThreshold = (pair: VarietyWarehousePair): number | undefined => {
-    const key = `${pair.variety}::${pair.warehouse}`;
-    if (thresholdEdits[key] !== undefined) {
-      const parsed = parseFloat(thresholdEdits[key]);
-      return isNaN(parsed) ? undefined : parsed;
-    }
-
-    if (pair.threshold !== undefined) {
-      return pair.threshold;
-    }
-
-    return settings.defaultThresholdPerVariety;
-  };
-
-  const isLowStock = (pair: VarietyWarehousePair): boolean => {
-    const threshold = getEffectiveThreshold(pair);
-    return threshold !== undefined && pair.currentStock <= threshold;
-  };
+  if (loading) {
+    return (
+      <div className="inventory-safety-page">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="inventory-safety-page">
-      <h3>Inventory Safety Settings</h3>
-      <p className="description">
-        Configure low stock thresholds to receive alerts when inventory levels are running low.
+      <h3>Inventory Safety Thresholds</h3>
+      <p className="page-description">
+        Set alert thresholds for low inventory. The system will highlight batches that fall below
+        these levels.
       </p>
 
-      {/* Global Defaults Panel */}
-      <div className="defaults-panel">
-        <h4>Global Default Thresholds</h4>
-        <p className="panel-description">
-          Set default thresholds that apply when no specific threshold is configured.
-        </p>
-
-        <div className="defaults-form">
-          <div className="form-group">
-            <label>Default Threshold per Variety (bags)</label>
+      <div className="defaults-section">
+        <h4>Default Thresholds (All Varieties & Warehouses)</h4>
+        <div className="threshold-inputs">
+          <div className="input-group">
+            <label>Critical Threshold (bags)</label>
             <input
               type="number"
+              value={defaultCritical}
+              onChange={(e) => setDefaultCritical(parseInt(e.target.value) || 0)}
               min="0"
-              step="1"
-              value={defaultPerVariety}
-              onChange={(e) => setDefaultPerVariety(e.target.value)}
-              placeholder="e.g., 3"
             />
-            <small>Applied to all variety-warehouse pairs without specific thresholds</small>
+            <small>Alert when inventory reaches this level</small>
           </div>
 
-          <div className="form-group">
-            <label>Default Threshold per Warehouse (bags)</label>
+          <div className="input-group">
+            <label>Low Threshold (bags)</label>
             <input
               type="number"
+              value={defaultLow}
+              onChange={(e) => setDefaultLow(parseInt(e.target.value) || 0)}
               min="0"
-              step="1"
-              value={defaultPerWarehouse}
-              onChange={(e) => setDefaultPerWarehouse(e.target.value)}
-              placeholder="e.g., 5"
             />
-            <small>Alternative default (currently not actively used)</small>
+            <small>Warning when inventory reaches this level</small>
           </div>
-
-          <button onClick={handleSaveDefaults} className="btn-save-defaults">
-            Save Default Thresholds
-          </button>
         </div>
+
+        <button className="btn-save" onClick={handleSaveDefaults}>
+          Save Default Thresholds
+        </button>
       </div>
 
-      {/* Variety-Warehouse Threshold Table */}
-      <div className="thresholds-section">
-        <h4>Specific Thresholds by Variety & Warehouse</h4>
+      <div className="specific-section">
+        <div className="section-header">
+          <h4>Specific Variety/Warehouse Thresholds</h4>
+          <button className="btn-add" onClick={() => setShowAddForm(!showAddForm)}>
+            {showAddForm ? 'Cancel' : '+ Add Specific Threshold'}
+          </button>
+        </div>
 
-        {varietyWarehousePairs.length === 0 ? (
-          <p className="empty-message">
-            No inventory data yet. Add green coffee batches to configure thresholds.
-          </p>
-        ) : (
-          <div className="thresholds-table-container">
-            <table className="thresholds-table">
+        {showAddForm && (
+          <div className="add-form">
+            <div className="form-row">
+              <div className="input-group">
+                <label>Variety</label>
+                <input
+                  type="text"
+                  value={newVariety}
+                  onChange={(e) => setNewVariety(e.target.value)}
+                  placeholder="e.g., Ethiopia Yirgacheffe"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Warehouse</label>
+                <input
+                  type="text"
+                  value={newWarehouse}
+                  onChange={(e) => setNewWarehouse(e.target.value)}
+                  placeholder="e.g., Main Warehouse"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Critical</label>
+                <input
+                  type="number"
+                  value={newCritical}
+                  onChange={(e) => setNewCritical(parseInt(e.target.value) || 0)}
+                  min="0"
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Low</label>
+                <input
+                  type="number"
+                  value={newLow}
+                  onChange={(e) => setNewLow(parseInt(e.target.value) || 0)}
+                  min="0"
+                />
+              </div>
+
+              <button className="btn-save-specific" onClick={handleAddSpecific}>
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+
+        {specificThresholds.length > 0 ? (
+          <div className="thresholds-table">
+            <table>
               <thead>
                 <tr>
                   <th>Variety</th>
                   <th>Warehouse</th>
-                  <th>Current Stock</th>
-                  <th>Threshold (bags)</th>
-                  <th>Status</th>
+                  <th>Critical</th>
+                  <th>Low</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {varietyWarehousePairs.map((pair) => {
-                  const key = `${pair.variety}::${pair.warehouse}`;
-                  const isEditing = thresholdEdits[key] !== undefined;
-                  const effectiveThreshold = getEffectiveThreshold(pair);
-                  const lowStock = isLowStock(pair);
-
-                  return (
-                    <tr key={key} className={lowStock ? 'low-stock-row' : ''}>
-                      <td className="variety-cell">{pair.variety}</td>
-                      <td>{pair.warehouse}</td>
-                      <td className="stock-cell">{pair.currentStock} bags</td>
-                      <td>
-                        <div className="threshold-input-group">
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={
-                              isEditing
-                                ? thresholdEdits[key]
-                                : pair.threshold?.toString() || ''
-                            }
-                            onChange={(e) =>
-                              handleThresholdChange(pair.variety, pair.warehouse, e.target.value)
-                            }
-                            placeholder={
-                              settings.defaultThresholdPerVariety?.toString() || 'None'
-                            }
-                            className="threshold-input"
-                          />
-                          {!pair.threshold && effectiveThreshold !== undefined && (
-                            <small className="default-indicator">
-                              (default: {effectiveThreshold})
-                            </small>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        {lowStock ? (
-                          <span className="status-badge status-low">Low Stock</span>
-                        ) : effectiveThreshold !== undefined ? (
-                          <span className="status-badge status-ok">OK</span>
-                        ) : (
-                          <span className="status-badge status-none">No threshold</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          {isEditing && (
-                            <button
-                              onClick={() => handleSaveThreshold(pair.variety, pair.warehouse)}
-                              className="btn-small btn-save"
-                            >
-                              Save
-                            </button>
-                          )}
-                          {pair.threshold !== undefined && (
-                            <button
-                              onClick={() => handleClearThreshold(pair.variety, pair.warehouse)}
-                              className="btn-small btn-clear"
-                            >
-                              Clear
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {specificThresholds.map((threshold, idx) => (
+                  <ThresholdRow
+                    key={idx}
+                    threshold={threshold}
+                    onUpdate={handleUpdateSpecific}
+                    onDelete={handleDeleteSpecific}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
+        ) : (
+          <p className="no-thresholds">
+            No specific thresholds set. Default thresholds will apply to all varieties and
+            warehouses.
+          </p>
         )}
       </div>
-
-      {/* Low Stock Alert Summary */}
-      {varietyWarehousePairs.some((p) => isLowStock(p)) && (
-        <div className="alert-summary">
-          <h4>⚠️ Low Stock Alerts</h4>
-          <ul>
-            {varietyWarehousePairs
-              .filter((p) => isLowStock(p))
-              .map((pair) => {
-                const key = `${pair.variety}::${pair.warehouse}`;
-                const threshold = getEffectiveThreshold(pair);
-                return (
-                  <li key={key}>
-                    <strong>{pair.variety}</strong> at <strong>{pair.warehouse}</strong>:{' '}
-                    {pair.currentStock} bags (threshold: {threshold})
-                  </li>
-                );
-              })}
-          </ul>
-        </div>
-      )}
     </div>
+  );
+}
+
+interface ThresholdRowProps {
+  threshold: InventorySafetyThreshold;
+  onUpdate: (variety: string, warehouse: string, critical: number, low: number) => void;
+  onDelete: (variety: string, warehouse: string) => void;
+}
+
+function ThresholdRow({ threshold, onUpdate, onDelete }: ThresholdRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [critical, setCritical] = useState(threshold.criticalThreshold);
+  const [low, setLow] = useState(threshold.lowThreshold);
+
+  const handleSave = () => {
+    onUpdate(threshold.variety, threshold.warehouse, critical, low);
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setCritical(threshold.criticalThreshold);
+    setLow(threshold.lowThreshold);
+    setEditing(false);
+  };
+
+  return (
+    <tr>
+      <td>{threshold.variety}</td>
+      <td>{threshold.warehouse}</td>
+      <td>
+        {editing ? (
+          <input
+            type="number"
+            value={critical}
+            onChange={(e) => setCritical(parseInt(e.target.value) || 0)}
+            min="0"
+            className="inline-input"
+          />
+        ) : (
+          threshold.criticalThreshold
+        )}
+      </td>
+      <td>
+        {editing ? (
+          <input
+            type="number"
+            value={low}
+            onChange={(e) => setLow(parseInt(e.target.value) || 0)}
+            min="0"
+            className="inline-input"
+          />
+        ) : (
+          threshold.lowThreshold
+        )}
+      </td>
+      <td>
+        {editing ? (
+          <div className="action-buttons">
+            <button onClick={handleSave} className="btn-save-inline">
+              Save
+            </button>
+            <button onClick={handleCancel} className="btn-cancel-inline">
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="action-buttons">
+            <button onClick={() => setEditing(true)} className="btn-edit">
+              Edit
+            </button>
+            <button
+              onClick={() => onDelete(threshold.variety, threshold.warehouse)}
+              className="btn-delete"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }

@@ -48,7 +48,7 @@ export default function CustomerForm({ customer, onSave, onCancel }: CustomerFor
     }
 
     const customerToSave: Customer = {
-      id: customer?.id || `customer-${Date.now()}`,
+      id: customer?.id || crypto.randomUUID(),
       name: formData.name!,
       email: formData.email!,
       phone: formData.phone || '',

@@ -28,6 +28,18 @@ export default function GreenBatchForm({ batch, onSave, onCancel }: GreenBatchFo
 
   useEffect(() => {
     if (batch) {
+      // Parse bagSize if it exists
+      if (batch.bagSize) {
+        const parts = batch.bagSize.split(' ');
+        if (parts.length === 2) {
+          setFormData({
+            ...batch,
+            bagSizeValue: parseFloat(parts[0]) || 60,
+            bagSizeUnit: parts[1] as WeightUnit || 'kg',
+          });
+          return;
+        }
+      }
       setFormData(batch);
     }
   }, [batch]);
@@ -50,23 +62,22 @@ export default function GreenBatchForm({ batch, onSave, onCancel }: GreenBatchFo
       return;
     }
 
+    // Combine bagSizeValue and bagSizeUnit into bagSize
+    const bagSize = `${formData.bagSizeValue || 60} ${formData.bagSizeUnit || 'kg'}`;
+
     const batchToSave: GreenCoffeeBatch = {
-      id: batch?.id || `green-${Date.now()}`,
+      id: batch?.id || crypto.randomUUID(),
       variety: formData.variety!,
       origin: formData.origin!,
       farm: formData.farm || '',
       importer: formData.importer || '',
       warehouse: formData.warehouse!,
-      bagSizeValue: formData.bagSizeValue || 60,
-      bagSizeUnit: (formData.bagSizeUnit as WeightUnit) || 'kg',
+      bagSize: bagSize,
       quantityBags: formData.quantityBags || 1,
       rating: (formData.rating as CoffeeRating) || 'AA',
-      pricePerUnit: formData.pricePerUnit || 0,
-      priceUnit: (formData.priceUnit as WeightUnit) || 'lb',
-      deliveryCost: formData.deliveryCost,
+      pricePerBag: formData.pricePerUnit || 0,
       receivedDate: formData.receivedDate || new Date().toISOString().split('T')[0],
       notes: formData.notes,
-      transferHistory: batch?.transferHistory || [],
     };
 
     onSave(batchToSave);
@@ -221,7 +232,7 @@ export default function GreenBatchForm({ batch, onSave, onCancel }: GreenBatchFo
           <h4>Pricing</h4>
           <div className="form-row">
             <div className="form-group">
-              <label>Price per Unit</label>
+              <label>Price per Bag</label>
               <div className="input-group">
                 <span className="input-prefix">$</span>
                 <input
@@ -232,12 +243,6 @@ export default function GreenBatchForm({ batch, onSave, onCancel }: GreenBatchFo
                   min="0"
                   step="0.01"
                 />
-                <select name="priceUnit" value={formData.priceUnit} onChange={handleChange}>
-                  <option value="lb">per lb</option>
-                  <option value="kg">per kg</option>
-                  <option value="g">per g</option>
-                  <option value="oz">per oz</option>
-                </select>
               </div>
             </div>
 

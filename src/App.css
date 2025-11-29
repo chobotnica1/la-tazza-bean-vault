@@ -83,3 +83,19 @@
 .inventory-content {
   padding: 1rem 0;
 }
+.btn-logout {
+  margin-left: auto;
+  padding: 0.5rem 1rem;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.btn-logout:hover {
+  background-color: #da190b;
+}

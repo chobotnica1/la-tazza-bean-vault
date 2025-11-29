@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { CuppingRecord } from '../../entities';
 import {
   getAllCuppingRecords,
@@ -11,9 +11,21 @@ import CuppingTable from './CuppingTable';
 import './QualityPage.css';
 
 export default function QualityPage() {
-  const [records, setRecords] = useState<CuppingRecord[]>(getAllCuppingRecords());
+  const [records, setRecords] = useState<CuppingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingRecord, setEditingRecord] = useState<CuppingRecord | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    loadRecords();
+  }, []);
+
+  const loadRecords = async () => {
+    setLoading(true);
+    const data = await getAllCuppingRecords();
+    setRecords(data);
+    setLoading(false);
+  };
 
   const handleAddNew = () => {
     setEditingRecord(null);
@@ -25,20 +37,20 @@ export default function QualityPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this cupping record?')) {
-      deleteCuppingRecord(id);
-      setRecords(getAllCuppingRecords());
+      await deleteCuppingRecord(id);
+      await loadRecords();
     }
   };
 
-  const handleSave = (record: CuppingRecord) => {
+  const handleSave = async (record: CuppingRecord) => {
     if (editingRecord) {
-      updateCuppingRecord(record);
+      await updateCuppingRecord(record);
     } else {
-      addCuppingRecord(record);
+      await addCuppingRecord(record);
     }
-    setRecords(getAllCuppingRecords());
+    await loadRecords();
     setShowForm(false);
     setEditingRecord(null);
   };
@@ -47,6 +59,16 @@ export default function QualityPage() {
     setShowForm(false);
     setEditingRecord(null);
   };
+
+  if (loading) {
+    return (
+      <div className="quality-page">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          Loading cupping records...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="quality-page">

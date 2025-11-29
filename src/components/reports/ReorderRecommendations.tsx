@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   getAllGreenBatches,
   getAllRoastedBatches,
@@ -36,10 +36,26 @@ function convertToPounds(value: number, unit: string): number {
 export default function ReorderRecommendations() {
   const [targetWeeksOfCover, setTargetWeeksOfCover] = useState(6);
 
-  const greenBatches = getAllGreenBatches();
-  const roastedBatches = getAllRoastedBatches();
-  const salesEntries = getAllSalesEntries();
-  const cuppingRecords = getAllCuppingRecords();
+const [greenBatches, setGreenBatches] = useState<any[]>([]);
+const [roastedBatches, setRoastedBatches] = useState<any[]>([]);
+const [salesEntries, setSalesEntries] = useState<any[]>([]);
+const [cuppingRecords, setCuppingRecords] = useState<any[]>([]);
+
+useEffect(() => {
+  const loadData = async () => {
+    const [green, roasted, sales, cupping] = await Promise.all([
+      getAllGreenBatches(),
+      getAllRoastedBatches(),
+      getAllSalesEntries(),
+      getAllCuppingRecords(),
+    ]);
+    setGreenBatches(green);
+    setRoastedBatches(roasted);
+    setSalesEntries(sales);
+    setCuppingRecords(cupping);
+  };
+  loadData();
+}, []);
 
   const recommendations = useMemo(() => {
     const varietyStockMap = new Map<string, number>();

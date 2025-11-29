@@ -1,174 +1,104 @@
-import { useMemo } from 'react';
-import {
-  getAllGreenBatches,
-  getAllRoastedBatches,
-  getAllSalesEntries,
-  getSafetySettings,
-  getThreshold,
-} from '../../repositories/localStore';
-import { estimateUsageRate, estimateDepletionDate } from '../../utils/usageEstimator';
+import { useState, useEffect } from 'react';
+import { getAllGreenBatches } from '../../repositories/localStore';
+import { estimateUsageRate } from '../../utils/usageEstimator';
 import './ForecastSummary.css';
 
-interface VarietyForecast {
+interface ForecastItem {
   variety: string;
   currentBags: number;
-  usageRatePerWeek: number;
-  depletionDate: Date | null;
-  threshold?: number;
-  daysUntilDepletion: number;
+  usageRate: number;
+  daysRemaining: number;
 }
 
 export default function ForecastSummary() {
-  const greenBatches = getAllGreenBatches();
-  const roastedBatches = getAllRoastedBatches();
-  const salesEntries = getAllSalesEntries();
-  const safetySettings = getSafetySettings();
+  const [forecasts, setForecasts] = useState<ForecastItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const forecasts = useMemo(() => {
-    const varietyStockMap = new Map<string, number>();
-    const varietyWarehouses = new Map<string, Set<string>>();
+  useEffect(() => {
+    loadForecasts();
+  }, []);
 
-    greenBatches.forEach((batch) => {
-      const current = varietyStockMap.get(batch.variety) || 0;
-      varietyStockMap.set(batch.variety, current + batch.quantityBags);
+  const loadForecasts = async () => {
+    setLoading(true);
+    const batches = await getAllGreenBatches();
 
-      if (!varietyWarehouses.has(batch.variety)) {
-        varietyWarehouses.set(batch.variety, new Set());
+    const grouped = batches.reduce((acc, batch) => {
+      if (!acc[batch.variety]) {
+        acc[batch.variety] = 0;
       }
-      varietyWarehouses.get(batch.variety)!.add(batch.warehouse);
-    });
+      acc[batch.variety] += batch.quantityBags;
+      return acc;
+    }, {} as Record<string, number>);
 
-    const forecasts: VarietyForecast[] = [];
+    const forecastList: ForecastItem[] = Object.entries(grouped).map(([variety, bags]) => {
+      const usageRate = estimateUsageRate(variety);
+      const daysRemaining = usageRate > 0 ? Math.floor(bags / usageRate) : 999;
 
-    varietyStockMap.forEach((currentBags, variety) => {
-      const usageRatePerWeek = estimateUsageRate(variety, roastedBatches, salesEntries);
-      const depletionDate = estimateDepletionDate(currentBags, usageRatePerWeek);
-
-      const warehouses = Array.from(varietyWarehouses.get(variety) || []);
-      const threshold =
-        warehouses.length > 0
-          ? getThreshold(variety, warehouses[0]) ??
-            safetySettings.defaultThresholdPerVariety
-          : safetySettings.defaultThresholdPerVariety;
-
-      let daysUntilDepletion = Infinity;
-      if (depletionDate) {
-        daysUntilDepletion = Math.floor(
-          (depletionDate.getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000)
-        );
-      }
-
-      forecasts.push({
+      return {
         variety,
-        currentBags,
-        usageRatePerWeek,
-        depletionDate,
-        threshold,
-        daysUntilDepletion,
-      });
+        currentBags: bags,
+        usageRate,
+        daysRemaining,
+      };
     });
 
-    const depletingSoon = forecasts
-      .filter((f) => f.depletionDate !== null)
-      .sort((a, b) => a.daysUntilDepletion - b.daysUntilDepletion)
-      .slice(0, 5);
+    forecastList.sort((a, b) => a.daysRemaining - b.daysRemaining);
 
-    return depletingSoon;
-  }, [greenBatches, roastedBatches, salesEntries, safetySettings]);
-
-  const formatDepletionDate = (date: Date | null): string => {
-    if (!date) return 'Stable';
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+    setForecasts(forecastList.slice(0, 5));
+    setLoading(false);
   };
 
-  const formatTimeUntil = (days: number): string => {
-    if (days === Infinity) return 'Stable';
-    if (days < 0) return 'Overdue';
-    if (days === 0) return 'Today';
-    if (days <= 7) return `${days} day${days !== 1 ? 's' : ''}`;
-    if (days <= 30) {
-      const weeks = Math.floor(days / 7);
-      return `${weeks} week${weeks !== 1 ? 's' : ''}`;
-    }
-    const months = Math.floor(days / 30);
-    return `${months} month${months !== 1 ? 's' : ''}`;
-  };
+  if (loading) {
+    return (
+      <div className="forecast-summary">
+        <h3>📊 Depletion Forecast</h3>
+        <div style={{ textAlign: 'center', padding: '1rem', color: '#999' }}>
+          Loading forecasts...
+        </div>
+      </div>
+    );
+  }
 
-  const getUrgencyClass = (days: number): string => {
-    if (days < 0) return 'urgency-critical';
-    if (days <= 14) return 'urgency-critical';
-    if (days <= 30) return 'urgency-warning';
-    return 'urgency-normal';
-  };
+  if (forecasts.length === 0) {
+    return (
+      <div className="forecast-summary">
+        <h3>📊 Depletion Forecast</h3>
+        <p className="no-data">No inventory data available for forecasting.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="forecast-summary-widget">
-      <div className="widget-header">
-        <h3>📊 Depletion Forecast</h3>
-        {forecasts.length > 0 && (
-          <span className="forecast-count">Top {forecasts.length}</span>
-        )}
-      </div>
+    <div className="forecast-summary">
+      <h3>📊 Depletion Forecast</h3>
+      <p className="forecast-description">
+        Top 5 fastest-depleting varieties based on estimated usage rates
+      </p>
 
-      {forecasts.length === 0 ? (
-        <div className="no-forecasts">
-          <span className="info-icon">ℹ️</span>
-          <p>No active depletion forecasts.</p>
-          <small>Varieties with usage data will appear here.</small>
-        </div>
-      ) : (
-        <div className="forecasts-list">
-          {forecasts.map((forecast, idx) => (
-            <div key={forecast.variety} className="forecast-item">
-              <div className="forecast-rank">{idx + 1}</div>
-              <div className="forecast-main">
-                <div className="forecast-header">
-                  <span className="forecast-variety">{forecast.variety}</span>
-                  <span className={`time-until ${getUrgencyClass(forecast.daysUntilDepletion)}`}>
-                    {formatTimeUntil(forecast.daysUntilDepletion)}
-                  </span>
-                </div>
-                <div className="forecast-details">
-                  <div className="detail-row">
-                    <span className="detail-label">Est. depletion:</span>
-                    <span className="detail-value">
-                      {formatDepletionDate(forecast.depletionDate)}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Current stock:</span>
-                    <span className="detail-value">{forecast.currentBags} bags</span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Weekly usage:</span>
-                    <span className="detail-value">
-                      {forecast.usageRatePerWeek.toFixed(1)} bags/week
-                    </span>
-                  </div>
-                  {forecast.threshold !== undefined && (
-                    <div className="detail-row">
-                      <span className="detail-label">Threshold:</span>
-                      <span className="detail-value">{forecast.threshold} bags</span>
-                    </div>
-                  )}
-                </div>
+      <div className="forecast-list">
+        {forecasts.map((forecast, idx) => (
+          <div key={idx} className="forecast-item">
+            <div className="forecast-rank">{idx + 1}</div>
+            <div className="forecast-details">
+              <div className="forecast-variety">{forecast.variety}</div>
+              <div className="forecast-stats">
+                <span className="stat">
+                  {forecast.currentBags} bags • {forecast.usageRate.toFixed(1)} bags/day
+                </span>
+                <span className={`days-remaining ${getDaysColor(forecast.daysRemaining)}`}>
+                  {forecast.daysRemaining} days remaining
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      {forecasts.length > 0 && (
-        <div className="widget-footer">
-          <a href="#" onClick={(e) => { e.preventDefault(); }}>
-            View full reorder recommendations →
-          </a>
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
+}
+
+function getDaysColor(days: number): string {
+  if (days <= 30) return 'critical';
+  if (days <= 60) return 'warning';
+  return 'good';
 }

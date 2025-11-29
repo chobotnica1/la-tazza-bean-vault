@@ -73,7 +73,7 @@ export default function RoastedBatchForm({ batch, onSave, onCancel }: RoastedBat
     }
 
     const batchToSave: RoastedCoffeeBatch = {
-      id: batch?.id || `roasted-${Date.now()}`,
+      id: batch?.id || crypto.randomUUID(),
       variety: formData.variety!,
       origin: formData.origin!,
       rating: formData.rating as any || 'AA',

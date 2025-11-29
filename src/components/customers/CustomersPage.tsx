@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Customer } from '../../entities';
 import {
   getAllCustomers,
@@ -11,9 +11,21 @@ import CustomerTable from './CustomerTable';
 import './CustomersPage.css';
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>(getAllCustomers());
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    setLoading(true);
+    const data = await getAllCustomers();
+    setCustomers(data);
+    setLoading(false);
+  };
 
   const handleAddNew = () => {
     setEditingCustomer(null);
@@ -25,20 +37,20 @@ export default function CustomersPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this customer?')) {
-      deleteCustomer(id);
-      setCustomers(getAllCustomers());
+      await deleteCustomer(id);
+      await loadCustomers();
     }
   };
 
-  const handleSave = (customer: Customer) => {
+  const handleSave = async (customer: Customer) => {
     if (editingCustomer) {
-      updateCustomer(customer);
+      await updateCustomer(customer);
     } else {
-      addCustomer(customer);
+      await addCustomer(customer);
     }
-    setCustomers(getAllCustomers());
+    await loadCustomers();
     setShowForm(false);
     setEditingCustomer(null);
   };
@@ -48,15 +60,22 @@ export default function CustomersPage() {
     setEditingCustomer(null);
   };
 
+  if (loading) {
+    return (
+      <div className="customers-page">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          Loading customers...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="customers-page">
       <div className="page-header">
-        <div>
-          <h2>Customers</h2>
-          <p className="page-subtitle">Manage your customer database</p>
-        </div>
+        <h2>Customers</h2>
         <button className="btn-primary" onClick={handleAddNew}>
-          + Add New Customer
+          + Add Customer
         </button>
       </div>
 

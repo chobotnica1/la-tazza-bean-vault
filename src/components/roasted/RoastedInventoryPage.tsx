@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { RoastedCoffeeBatch } from '../../entities';
 import {
   getAllRoastedBatches,
@@ -11,9 +11,21 @@ import RoastedBatchTable from './RoastedBatchTable';
 import './RoastedInventoryPage.css';
 
 export default function RoastedInventoryPage() {
-  const [batches, setBatches] = useState<RoastedCoffeeBatch[]>(getAllRoastedBatches());
+  const [batches, setBatches] = useState<RoastedCoffeeBatch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingBatch, setEditingBatch] = useState<RoastedCoffeeBatch | null>(null);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    loadBatches();
+  }, []);
+
+  const loadBatches = async () => {
+    setLoading(true);
+    const data = await getAllRoastedBatches();
+    setBatches(data);
+    setLoading(false);
+  };
 
   const handleAddNew = () => {
     setEditingBatch(null);
@@ -25,20 +37,20 @@ export default function RoastedInventoryPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this roasted batch?')) {
-      deleteRoastedBatch(id);
-      setBatches(getAllRoastedBatches());
+      await deleteRoastedBatch(id);
+      await loadBatches();
     }
   };
 
-  const handleSave = (batch: RoastedCoffeeBatch) => {
+  const handleSave = async (batch: RoastedCoffeeBatch) => {
     if (editingBatch) {
-      updateRoastedBatch(batch);
+      await updateRoastedBatch(batch);
     } else {
-      addRoastedBatch(batch);
+      await addRoastedBatch(batch);
     }
-    setBatches(getAllRoastedBatches());
+    await loadBatches();
     setShowForm(false);
     setEditingBatch(null);
   };
@@ -48,9 +60,15 @@ export default function RoastedInventoryPage() {
     setEditingBatch(null);
   };
 
-  const refreshBatches = () => {
-    setBatches(getAllRoastedBatches());
-  };
+  if (loading) {
+    return (
+      <div className="roasted-inventory-page">
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+          Loading inventory...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="roasted-inventory-page">
@@ -77,7 +95,7 @@ export default function RoastedInventoryPage() {
         batches={batches}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onRefresh={refreshBatches}
+        onRefresh={loadBatches}
       />
     </div>
   );
