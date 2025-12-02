@@ -11,7 +11,11 @@ interface AlertItem {
   severity: 'critical' | 'low';
 }
 
-export default function NeedsAttention() {
+interface NeedsAttentionProps {
+  onNavigate?: (section: 'settings') => void;
+}
+
+export default function NeedsAttention({ onNavigate }: NeedsAttentionProps) {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -125,18 +129,26 @@ export default function NeedsAttention() {
         ))}
       </div>
 
-<div className="alert-footer">
-  <a 
-    href="/settings" 
-    style={{ color: '#3b82f6', textDecoration: 'none', cursor: 'pointer' }}
-    onClick={(e) => {
-      e.preventDefault();
-      window.location.href = '/settings';
-    }}
-  >
-    Configure thresholds in Settings →
-  </a>
-</div>
+      <div className="alert-footer">
+        <button
+          onClick={() => {
+            if (onNavigate) {
+              onNavigate('settings');
+            }
+          }}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            color: '#3b82f6', 
+            textDecoration: 'underline',
+            cursor: 'pointer',
+            padding: 0,
+            font: 'inherit'
+          }}
+        >
+          Configure thresholds in Settings →
+        </button>
+      </div>
     </div>
   );
 }

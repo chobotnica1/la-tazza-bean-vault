@@ -6,7 +6,11 @@ import NeedsAttention from './NeedsAttention';
 import ForecastSummary from './ForecastSummary';
 import './HomePage.css';
 
-export default function HomePage() {
+interface HomePageProps {
+  onNavigate?: (section: 'settings') => void;
+}
+
+export default function HomePage({ onNavigate }: HomePageProps) {
   const [greenBatches, setGreenBatches] = useState<GreenCoffeeBatch[]>([]);
   const [roastedBatches, setRoastedBatches] = useState<RoastedCoffeeBatch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +49,7 @@ export default function HomePage() {
 
       <QuickStats greenBatches={greenBatches} roastedBatches={roastedBatches} />
 
-      <NeedsAttention />
+      <NeedsAttention onNavigate={onNavigate} />
 
       <ForecastSummary />
     </div>

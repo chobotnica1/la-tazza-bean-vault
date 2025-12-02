@@ -123,7 +123,7 @@ function App() {
 
       <main className="app-main">
         <ErrorBoundary>
-          {activeSection === 'home' && <HomePage />}
+          {activeSection === 'home' && <HomePage onNavigate={setActiveSection} />}
 
           {activeSection === 'inventory' && (
             <div className="inventory-section">
