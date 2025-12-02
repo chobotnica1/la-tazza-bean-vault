@@ -125,11 +125,18 @@ export default function NeedsAttention() {
         ))}
       </div>
 
-      <div className="alert-footer">
-        <a href="#" onClick={() => window.location.hash = 'settings'}>
-          Configure thresholds in Settings →
-        </a>
-      </div>
+<div className="alert-footer">
+  <a 
+    href="/settings" 
+    style={{ color: '#3b82f6', textDecoration: 'none', cursor: 'pointer' }}
+    onClick={(e) => {
+      e.preventDefault();
+      window.location.href = '/settings';
+    }}
+  >
+    Configure thresholds in Settings →
+  </a>
+</div>
     </div>
   );
 }
