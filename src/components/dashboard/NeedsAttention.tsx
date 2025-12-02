@@ -132,10 +132,13 @@ export default function NeedsAttention({ onNavigate }: NeedsAttentionProps) {
       <div className="alert-footer">
         <button
           onClick={() => {
-            if (onNavigate) {
-              onNavigate('settings');
-            }
-          }}
+  // Directly click the Settings button in the nav
+  const settingsButton = Array.from(document.querySelectorAll('button'))
+    .find(btn => btn.textContent?.trim() === 'Settings');
+  if (settingsButton) {
+    (settingsButton as HTMLButtonElement).click();
+  }
+}}
           style={{ 
             background: 'none', 
             border: 'none', 
